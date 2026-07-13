@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<title>TERMIKA — 2D plachtařský simulátor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#7ec8f0">
+<!-- PWA / iOS "Přidat na plochu" -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TERMIKA">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- dotyková tlačítka -->
+<div id="touchui">
+  <button id="btnAction" class="bigbtn" title="Mezerník">⟳</button>
+</div>
+
+<!-- hlavní menu -->
+<div id="menu" class="overlay">
+  <div class="panel">
+    <h1>TERMIKA</h1>
+    <p class="sub">2D plachtařská záchodovka &mdash; kolik kilometrů dnes uletíš?</p>
+    <p id="bestline" class="best"></p>
+    <button id="btnStart" class="menubtn">VZLET&nbsp;✈</button>
+    <button id="btnHelp" class="menubtn small">Jak na to?</button>
+  </div>
+</div>
+
+<!-- nápověda -->
+<div id="help" class="overlay hidden">
+  <div class="panel wide">
+    <h2>Jak létat</h2>
+    <div class="cols">
+      <div>
+        <h3>Ovládání</h3>
+        <ul>
+          <li><b>↓ / S</b> nebo <b>tažení dolů</b> &mdash; přitažení (zpomalit, stoupat)</li>
+          <li><b>↑ / W</b> nebo <b>tažení nahoru</b> &mdash; potlačení (zrychlit)</li>
+          <li><b>MEZERNÍK / ⟳</b> &mdash; vypnout vlek / kroužit ve stoupáku</li>
+          <li><b>← →</b> nebo <b>tažení do stran</b> &mdash; centrování kruhu</li>
+          <li><b>M</b> zvuk, <b>P</b> pauza, <b>R</b> restart</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Taktika</h3>
+        <ul>
+          <li>Vário píská = stoupavý vzduch. <b>Krouži</b>, nebo jen <b>houpni</b> (zpomal v stoupání, zrychli v klesání).</li>
+          <li>Stoupáky hledej pod <b>kumuly</b>. Mraky se vyvíjejí a rozpadají &mdash; rozpadlý mrak už nenese.</li>
+          <li>Šipky u rychlosti = <b>MacCready</b>: doporučená přeskoková rychlost.</li>
+          <li>Pod <b>250&nbsp;m</b> mysli na přistání: pole ano, les/ves/voda ne. Do pole max <b>100&nbsp;km/h</b>.</li>
+          <li>Odpoledne termika slábne. Večer už nikdo nelétá &mdash; dolétni, dokud to nese.</li>
+        </ul>
+      </div>
+    </div>
+    <button id="btnHelpClose" class="menubtn">Rozumím</button>
+  </div>
+</div>
+
+<!-- výsledek -->
+<div id="result" class="overlay hidden">
+  <div class="panel">
+    <h2 id="resTitle">Přistání</h2>
+    <p id="resVerdict" class="verdict"></p>
+    <div id="resStats" class="stats"></div>
+    <button id="btnAgain" class="menubtn">Letět znovu</button>
+  </div>
+</div>
+
+<script src="js/util.js"></script>
+<script src="js/config.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/world.js"></script>
+<script src="js/glider.js"></script>
+<script src="js/render.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
