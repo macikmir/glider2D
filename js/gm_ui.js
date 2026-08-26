@@ -367,8 +367,14 @@ class GmAirportsView {
     this._fixLonRad = null;
   }
 
-  // Úplný sken až po kilometru pohybu; příletové výšky se přepočítávají každý
-  // tik, protože výška se mění pořád, i když se poloha nemění.
+  // Kilometrový práh šetří jen úplný sken celé databáze — to je ta drahá část.
+  // Vzdálenost a azimut už vybraných letišť se přepočítají každý tik, jsou to
+  // čtyři haversiny za sekundu.
+  //
+  // POZOR, tohle je jediné místo, kde se port rozchází s originálem: v GaFly
+  // drží práh i výsledky, takže vzdálenost stojí 33 s a pak skočí o kilometr
+  // (a šipka po přeletu letiště ještě kilometr ukazuje dopředu). Odhaleno
+  // právě tímhle simulátorem; do AirportsView.mc to patří stejně.
   refresh() {
     this._db.setRows(this._dev.dbRows());
     const lat = this._pos.latRad(), lon = this._pos.lonRad();
@@ -378,9 +384,24 @@ class GmAirportsView {
       this._fixes = this._db.nearest(lat, lon, this._ROW_COUNT);
       this._fixLatRad = lat;
       this._fixLonRad = lon;
+    } else {
+      for (let i = 0; i < this._fixes.length; i += 1) this._fixes[i].updateFrom(lat, lon);
+      this._sortByDistance();
     }
 
     GmGlide.annotate(this._fixes, this._baro.mslAltitudeM(), GmSettings.glideLD());
+  }
+
+  // Který ze čtyř je nejblíž, se mění i mezi skeny — přeletíš letiště a to
+  // za tebou se propadne v pořadí. Obrazovka slibuje „nejbližší první".
+  _sortByDistance() {
+    const f = this._fixes;
+    for (let i = 1; i < f.length; i += 1) {
+      const cur = f[i];
+      let j = i - 1;
+      while (j >= 0 && f[j].distM > cur.distM) { f[j + 1] = f[j]; j -= 1; }
+      f[j + 1] = cur;
+    }
   }
 
   _needsRecompute(lat, lon) {

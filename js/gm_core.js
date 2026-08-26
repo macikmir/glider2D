@@ -147,14 +147,24 @@ const GmFmt = {
 
 // ------------------------------------------------------------ AirportDb.mc ---
 class GmAirportFix {
-  constructor(ident, name, elevM, hasMetar, distM, bearingRad) {
+  constructor(ident, name, elevM, hasMetar, latRad, lonRad) {
     this.ident = ident;
     this.name = name;
     this.elevM = elevM;
     this.hasMetar = hasMetar;
-    this.distM = distM;
-    this.bearingRad = bearingRad;
+    // Poloha letiště se drží, ne jen výsledek. Vzdálenost a azimut platí vždy
+    // jen k nějakému bodu, a ten se pod letadlem mění každou vteřinu.
+    this.latRad = latRad;
+    this.lonRad = lonRad;
+    this.distM = 0;
+    this.bearingRad = 0;
     this.arrivalM = null;
+  }
+
+  //! Přepočte vzdálenost a azimut z aktuální polohy.
+  updateFrom(latRad, lonRad) {
+    this.distM = GmGeo.distanceM(latRad, lonRad, this.latRad, this.lonRad);
+    this.bearingRad = GmGeo.initialBearingRad(latRad, lonRad, this.latRad, this.lonRad);
   }
 
   isReachable(reserveM) {
@@ -190,8 +200,8 @@ class GmAirportDb {
 
       if (result.length >= count && d >= worstM) continue;
 
-      const fix = new GmAirportFix(row[0], row[1], row[4], row[5] !== 0, d,
-                                   GmGeo.initialBearingRad(latRad, lonRad, aLat, aLon));
+      const fix = new GmAirportFix(row[0], row[1], row[4], row[5] !== 0, aLat, aLon);
+      fix.updateFrom(latRad, lonRad);
       this._insertSorted(result, fix, count);
       worstM = result[result.length - 1].distM;
     }

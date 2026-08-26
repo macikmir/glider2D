@@ -98,6 +98,12 @@ takže se tu appka dá posuzovat i z hlediska UI/UX. Věrné je rozvržení, cho
 tlačítek a zaokrouhlování; věrné **nejsou** tvary písmen (fonty Instinctu nemáme,
 dopočítává se šířka referenčních řetězců) a vzhled systémového menu.
 
+Simulátor si zatím vyžádal jednu opravu, která do GaFly teprve patří: tamní
+`AirportsView` drží kilometrový práh nejen pro sken databáze, ale i pro už
+vybraná letiště, takže vzdálenost stojí 33 s a pak skočí o kilometr — a šipka
+po přeletu letiště ještě kilometr ukazuje dopředu. Tady se přepočítává každou
+sekundu (čtyři haversiny), sken databáze zůstal na prahu.
+
 ## Struktura kódu
 
 ```
