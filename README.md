@@ -21,7 +21,7 @@ Hra je **PWA** — po vystavení na HTTPS ji lze nainstalovat na plochu:
 
 Poběží celoobrazovkově na šířku, offline (service worker `sw.js`),
 s vlastní ikonou a bez adresního řádku. **Při změně souborů zvyš verzi
-cache v `sw.js`** (`termika-v3` → `v4`) — jinak prohlížeč vůbec nepozná,
+cache v `sw.js`** (`termika-v5` → `v6`) — jinak prohlížeč vůbec nepozná,
 že je co stahovat, a iPhone podrží starou verzi.
 
 Novou verzi si hra načte sama: jakmile nový service worker převezme
