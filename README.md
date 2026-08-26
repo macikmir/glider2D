@@ -72,6 +72,32 @@ Herní kompromis: pracovní pásmo termiky je nižší (základna ~900–1200 m 
 a stoupáky/klesáky silnější než průměrná realita, aby jeden herní den dal
 několik celých cyklů stoupání + přeskok. Polára a energetika jsou reálné.
 
+## Hodinky GlideMate (⌚ / klávesa T)
+
+V letu se dá vyvolat simulátor hodinek **Garmin Instinct 2** s aplikací
+[GlideMate](https://github.com/macikmir/GaFly) — nejbližší letiště, vzdálenost
+a výška, se kterou bys nad ně přiletěl. Kluzák zatím letí na trim, protože máš
+ruce na tlačítkách, ne na kniplu.
+
+Ovládá se pěti tlačítky na pouzdře (dotykem i klávesami): **UP/DOWN** = ↑↓ nebo
+W/S, **GPS** = Enter, **SET** = Esc. Podržené UP otevře menu, jako na zápěstí.
+**SET** na první obrazovce aplikaci zavře. Tlačítko **SIM** není součástí
+aplikace — simuluje ztrátu GPS, což se na skutečných hodinkách testuje těžko.
+
+Letiště jsou herní, ne z reálné databáze: přístroj, který ukazuje letiště, kam
+se v téhle hře nedostaneš, by byl horší než žádný. Skutečné jsou jen identy
+a jména. Osa x je trať 070° z LKRK, takže v přímém letu šipka ukazuje
+nahoru/dolů — a **v termice se roztočí**, protože kroužení dodá skutečný kurz.
+
+Každý let má svoje **QNH dne** (1006–1026 hPa), které hodinky neznají. Dokud si
+ho nenastavíš (GPS → UP/DOWN), je MSL posunutá o ~8 m na hPa — letová hladina
+sedí vždycky. Přesně tenhle rozdíl je důvod, proč appka ukazuje obojí zároveň.
+
+Matematika, formátovače i rozvržení jsou portované z Monkey C řádek po řádku,
+takže se tu appka dá posuzovat i z hlediska UI/UX. Věrné je rozvržení, chování
+tlačítek a zaokrouhlování; věrné **nejsou** tvary písmen (fonty Instinctu nemáme,
+dopočítává se šířka referenčních řetězců) a vzhled systémového menu.
+
 ## Struktura kódu
 
 ```
@@ -79,6 +105,9 @@ index.html      – kostra, overlaye (menu, nápověda, výsledek)
 css/style.css   – styly UI
 js/util.js      – matematika, seedovaný RNG, 1D šum
 js/config.js    – všechny herní konstanty (ladí se tady)
+js/gm_core.js   – GlideMate: port matematiky a formátovačů z Monkey C
+js/gm_ui.js     – GlideMate: obrazovky, vstup, náhrada Dc a WatchUi
+js/watch.js     – emulace Instinctu 2 + adaptér herního světa na appku
 js/audio.js     – WebAudio: vário, vítr, motor vlečné, události
 js/world.js     – generovaný terén (pole/les/ves/jezero/letiště),
                   termika s životním cyklem, vzduchová hmota

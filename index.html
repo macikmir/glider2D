@@ -26,6 +26,11 @@
   <button id="btnAction" class="bigbtn" title="Mezerník">⟳</button>
 </div>
 
+<!-- vlevo dole, ať zbyde vpravo místo na vário a tlačítko kroužení -->
+<div id="touchleft">
+  <button id="btnWatch" class="smallbtn" title="Hodinky (T)">⌚</button>
+</div>
+
 <!-- hlavní menu -->
 <div id="menu" class="overlay">
   <div class="panel">
@@ -51,6 +56,8 @@
           <li><b>← →</b> nebo <b>tažení do stran</b> &mdash; centrování kruhu</li>
           <li><b>M</b> zvuk, <b>P</b> pauza, <b>R</b> restart</li>
           <li>Odchod z aplikace let zapauzuje &mdash; <b>klepnutím</b> pokračuješ.</li>
+          <li><b>T</b> nebo <b>⌚</b> &mdash; hodinky GlideMate: nejbližší letiště
+              a doletová výška. Kluzák zatím letí na trim.</li>
         </ul>
       </div>
       <div>
@@ -81,6 +88,9 @@
 
 <script src="js/util.js"></script>
 <script src="js/config.js"></script>
+<script src="js/gm_core.js"></script>
+<script src="js/gm_ui.js"></script>
+<script src="js/watch.js"></script>
 <script src="js/audio.js"></script>
 <script src="js/world.js"></script>
 <script src="js/glider.js"></script>

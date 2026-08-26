@@ -9,8 +9,24 @@
   const elHelp = document.getElementById("help");
   const elResult = document.getElementById("result");
   const elTouch = document.getElementById("touchui");
+  const elTouchLeft = document.getElementById("touchleft");
   const btnAction = document.getElementById("btnAction");
+  const btnWatch = document.getElementById("btnWatch");
   const elBest = document.getElementById("bestline");
+
+  // Simulátor hodinek GlideMate. Kluzák mezitím letí na trim — máš ruce na
+  // hodinkách, ne na kniplu, což je zrovna ta situace, kterou má smysl zkoušet.
+  const watch = new WatchDevice();
+  let qnhActual = 1013;         // skutečné QNH dne; hodinky ho neznají
+
+  // Klávesy na pět tlačítek Instinctu. Podržené UP dělá MENU (řeší watch.js).
+  const WATCH_KEYS = {
+    ArrowUp: "UP", KeyW: "UP",
+    ArrowDown: "DOWN", KeyS: "DOWN",
+    Enter: "GPS", Space: "GPS",
+    Escape: "SET", Backspace: "SET",
+    Digit0: "SIM",
+  };
 
   let state = "menu";           // menu | flying | result
   let world, glider, towPlane;
@@ -37,11 +53,31 @@
   const input = { pitch: 0, nudge: 0, action: false };
   const keys = {};
   let touch = null;             // {id, x0, y0, x, y}
+  let watchTouch = null;        // {id, btn} — prst drží tlačítko hodinek
+
+  function setWatch(open) {
+    watch.open = open;
+    btnWatch.classList.toggle("on", open);
+    if (open) { watch.start(); input.action = false; }
+  }
 
   window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
     keys[e.code] = true;
     audio.ensure();
+
+    if (e.code === "KeyT" && state === "flying") {
+      e.preventDefault();
+      setWatch(!watch.open);
+      return;
+    }
+    // Otevřené hodinky berou svých pět tlačítek; M/P/R zůstávají hře.
+    if (watch.open && state === "flying" && WATCH_KEYS[e.code]) {
+      e.preventDefault();
+      watch.buttonDown(WATCH_KEYS[e.code]);
+      return;
+    }
+
     if (e.code === "Space") {
       e.preventDefault();
       if (state === "flying") { if (!paused) input.action = true; }
@@ -56,7 +92,13 @@
     }
     if (e.code === "KeyH") { if (state === "menu") showHelp(true); }
   });
-  window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+  window.addEventListener("keyup", (e) => {
+    keys[e.code] = false;
+    if (watch.open && WATCH_KEYS[e.code]) {
+      // BACK na kořenové obrazovce znamená „ukonči aplikaci" — tady zavři panel
+      if (!watch.buttonUp(WATCH_KEYS[e.code])) setWatch(false);
+    }
+  });
 
   canvas.addEventListener("pointerdown", (e) => {
     audio.ensure();
@@ -64,6 +106,13 @@
     // Pauza se na mobilu zapne sama při odchodu z aplikace a klávesa P tam
     // není — bez tohohle by se z rozlétaného letu nedalo dostat ven.
     if (paused) { paused = false; input.action = false; return; }
+    // Otevřené hodinky si berou dotyk pro sebe; kluzák zatím letí na trim.
+    if (watch.open) {
+      const box = renderer.watchBox;
+      const b = box && watch.hitTest(e.clientX, e.clientY, box.x, box.y, box.scale);
+      if (b) { watchTouch = { id: e.pointerId, btn: b }; watch.buttonDown(b); }
+      return;
+    }
     if (touch) return;
     touch = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY };
     canvas.setPointerCapture(e.pointerId);
@@ -72,6 +121,11 @@
     if (touch && e.pointerId === touch.id) { touch.x = e.clientX; touch.y = e.clientY; }
   });
   const endTouch = (e) => {
+    if (watchTouch && e.pointerId === watchTouch.id) {
+      if (!watch.buttonUp(watchTouch.btn)) setWatch(false);
+      watchTouch = null;
+      return;
+    }
     if (touch && e.pointerId === touch.id) touch = null;
   };
   canvas.addEventListener("pointerup", endTouch);
@@ -79,7 +133,12 @@
 
   btnAction.addEventListener("click", () => {
     audio.ensure();
-    if (state === "flying" && !paused) input.action = true;
+    if (state === "flying" && !paused && !watch.open) input.action = true;
+  });
+
+  btnWatch.addEventListener("click", () => {
+    audio.ensure();
+    if (state === "flying") setWatch(!watch.open);
   });
 
   document.getElementById("btnStart").addEventListener("click", () => { audio.ensure(); startFlight(); });
@@ -97,6 +156,12 @@
   const isTouchDevice = matchMedia("(pointer: coarse)").matches;
 
   function readInput(dt) {
+    // S hodinkami v ruce kluzák letí na trim — ruce jsou na tlačítkách.
+    if (watch.open) {
+      input.pitch += (0 - input.pitch) * Math.min(dt * 7, 1);
+      input.nudge = 0;
+      return;
+    }
     // klávesy
     let target = 0;
     if (keys["ArrowUp"] || keys["KeyW"]) target += 1;    // potlačit = zrychlit
@@ -148,10 +213,15 @@
     input.action = false;
     input.pitch = 0;
     touch = null;
+    watchTouch = null;
+    setWatch(false);
+    // QNH dne. Hodinky ho neznají — dokud si ho nenastavíš, MSL je posunutá
+    // (o ~8 m na hPa), zatímco letová hladina sedí vždycky.
+    qnhActual = 1006 + Math.floor(Math.random() * 21);
     state = "flying";
     elMenu.classList.add("hidden");
     elResult.classList.add("hidden");
-    if (isTouchDevice) elTouch.classList.add("visible");
+    if (isTouchDevice) { elTouch.classList.add("visible"); elTouchLeft.classList.add("visible"); }
     btnAction.textContent = "VYPNI";
     btnAction.classList.add("tow");
     btnAction.classList.remove("circling");
@@ -172,6 +242,7 @@
     elMenu.classList.remove("hidden");
     elBest.textContent = best > 0 ? "Tvůj rekord: " + best.toFixed(1) + " km" : "";
     elTouch.classList.remove("visible");
+    elTouchLeft.classList.remove("visible");
   }
 
   // ---------- konec letu ----------
@@ -217,6 +288,7 @@
     document.getElementById("resStats").innerHTML = rows.join("");
     elResult.classList.remove("hidden");
     elTouch.classList.remove("visible");
+    elTouchLeft.classList.remove("visible");
   }
 
   // ---------- události z fyziky ----------
@@ -246,6 +318,7 @@
           break;
         case "landed":
           audio.thud(!ev.ok);
+          setWatch(false);
           endTimer = setTimeout(finishFlight, ev.ok ? 900 : 1200);
           break;
       }
@@ -308,6 +381,8 @@
       updateTowPlane(dt);
       handleEvents(events);
       contextTips();
+      watch.buttonHold(dt);
+      watch.sync(world, glider, qnhActual, dt);
     }
 
     // vykreslení (i v menu jako pozadí)
@@ -321,6 +396,7 @@
         best,
         muted: audio.muted,
         touchUI: isTouchDevice,   // HUD nechá dole vpravo místo tlačítku ⟳
+        watch,
       });
       if (paused && state === "flying") {
         const ctx = renderer.ctx;

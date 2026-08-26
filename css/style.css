@@ -32,6 +32,12 @@ html, body {
 }
 #touchui.visible { display: block; }
 
+#touchleft {
+  position: fixed; left: max(14px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 20; display: none;
+}
+#touchleft.visible { display: block; }
+
 .bigbtn {
   width: 86px; height: 86px;
   border-radius: 50%;
@@ -44,6 +50,20 @@ html, body {
   transition: transform .08s, background .15s;
 }
 .bigbtn:active { transform: scale(.92); }
+
+/* hodinky GlideMate */
+.smallbtn {
+  display: block;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.7);
+  background: rgba(20, 60, 100, .5);
+  color: #fff; font-size: 26px;
+  cursor: pointer;
+  transition: transform .08s, background .15s;
+}
+.smallbtn:active { transform: scale(.92); }
+.smallbtn.on { background: rgba(230, 120, 20, .75); }
 .bigbtn.tow { font-size: 17px; font-weight: 800; letter-spacing: .5px; }
 .bigbtn.circling { background: rgba(230, 120, 20, .75); }
 

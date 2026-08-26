@@ -9,6 +9,7 @@ class Renderer {
     this.camLeft = 0;
     this.inited = false;
     this.padL = this.padR = this.padT = this.padB = 0;
+    this.watchBox = null;   // {x,y,scale} — kam se vykreslily hodinky
     this.resize();
   }
 
@@ -66,7 +67,25 @@ class Renderer {
     if (S.towPlane) this.drawTowPlane(S);
     this.drawGlider(S);
     this.drawHUD(S);
+    this.drawWatch(S);
     this.drawMessages(S);
+  }
+
+  //! Simulátor hodinek vlevo nahoře, pod horním pruhem HUD. Měřítko se drží
+  //! na 1:1, dokud se to vejde — je to 1bitový displej a půlpixely na něm
+  //! vypadají jako chyba, která na zařízení není.
+  drawWatch(S) {
+    const w = S.watch;
+    if (!w || !w.open) { this.watchBox = null; return; }
+
+    const availH = this.H - this.padT - this.padB - 82;
+    const availW = this.W - this.padL - 20;
+    const scale = Math.max(0.5, Math.min(1, availH / w.DEV_H, availW / w.DEV_W));
+    const x = this.padL + 10;
+    const y = this.padT + 70;
+
+    this.watchBox = { x, y, scale };
+    w.blit(this.ctx, x, y, scale);
   }
 
   // ---------- obloha ----------

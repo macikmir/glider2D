@@ -1,6 +1,6 @@
 "use strict";
 // Service worker: hra funguje offline. Při změně souborů zvyš verzi cache.
-const CACHE = "termika-v3";
+const CACHE = "termika-v4";
 const ASSETS = [
   ".",
   "index.html",
@@ -8,6 +8,9 @@ const ASSETS = [
   "css/style.css",
   "js/util.js",
   "js/config.js",
+  "js/gm_core.js",
+  "js/gm_ui.js",
+  "js/watch.js",
   "js/audio.js",
   "js/world.js",
   "js/glider.js",
