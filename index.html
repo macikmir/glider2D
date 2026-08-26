@@ -18,6 +18,9 @@
 <body>
 <canvas id="game"></canvas>
 
+<!-- sonda: renderer si z ní přečte safe-area insety (notch, home indicator) -->
+<div id="safearea"></div>
+
 <!-- dotyková tlačítka -->
 <div id="touchui">
   <button id="btnAction" class="bigbtn" title="Mezerník">⟳</button>
@@ -71,6 +74,7 @@
     <p id="resVerdict" class="verdict"></p>
     <div id="resStats" class="stats"></div>
     <button id="btnAgain" class="menubtn">Letět znovu</button>
+    <button id="btnMenu" class="menubtn small">Do menu</button>
   </div>
 </div>
 

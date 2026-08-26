@@ -35,8 +35,10 @@ pro sebe a kamarády je PWA plnohodnotná a zdarma.
 | potlačit (zrychlit) | ↑ / W | tažení nahoru |
 | přitáhnout (zpomalit) | ↓ / S | tažení dolů |
 | vypnout vlek / kroužit | mezerník | tlačítko ⟳ |
-| centrování v kruhu | ← → | tažení do stran |
-| zvuk / pauza / restart | M / P / R | — |
+| centrování v kruhu | ← → / A D | tažení do stran |
+| zvuk / pauza / restart | M / P nebo Esc / R | — |
+
+Dotyk kopíruje knipl: táhneš prsty k sobě (dolů) = přitažení.
 
 ## Herní principy (pro plachtaře)
 
@@ -50,12 +52,14 @@ pro sebe a kamarády je PWA plnohodnotná a zdarma.
   v poryvech a každý stoupák má životní cyklus — kumul roste, zraje
   a rozpadá se (rozpadající se mrak je plochý a šedý, nenese).
   ~18 % stoupáků je „modrých“ (bez mraku). Silné nesou čápy.
-- **Denní chod**: den běží 30× rychleji (13:00–20:00 za ~14 minut).
+- **Denní chod**: den běží 30× rychleji (12:00–20:00 za ~16 minut).
   Odpoledne základna stoupá, večer termika umírá — dolétnout na letiště
   je bonus do statistik, přistání do pole je v pořádku, les/ves/voda ne.
   Do pole max ~100 km/h a s malým klesáním, jinak je z toho kůlnička.
-- **Aerovlek** na startu: vário ukazuje i ve vleku — vypni ve stoupáku
-  (auto-vypnutí v 600 m AGL).
+- **Aerovlek** je krátký (~35 s, auto-vypnutí ve 400 m AGL) — jako v reálu
+  se předčasně vypnout skoro nevyplatí. Vário ve vleku ukazuje **netto**,
+  tedy samotný vzduch, takže když tě vlečná zrovna táhne stoupákem, je to
+  vidět a jde toho využít.
 
 Herní kompromis: pracovní pásmo termiky je nižší (základna ~900–1200 m AGL)
 a stoupáky/klesáky silnější než průměrná realita, aby jeden herní den dal

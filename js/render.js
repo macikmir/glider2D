@@ -8,6 +8,7 @@ class Renderer {
     this.camBottom = 0;
     this.camLeft = 0;
     this.inited = false;
+    this.padL = this.padR = this.padT = this.padB = 0;
     this.resize();
   }
 
@@ -18,6 +19,19 @@ class Renderer {
     this.canvas.width = Math.round(this.W * dpr);
     this.canvas.height = Math.round(this.H * dpr);
     this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.readSafeArea();
+  }
+
+  // HUD kreslíme do canvasu, takže si insety musíme přečíst z pomocné sondy
+  // v DOM — jinak by na iPhonu na šířku zalezl pod notch / home indicator.
+  readSafeArea() {
+    const probe = document.getElementById("safearea");
+    if (!probe) return;
+    const cs = getComputedStyle(probe);
+    this.padT = parseFloat(cs.paddingTop) || 0;
+    this.padR = parseFloat(cs.paddingRight) || 0;
+    this.padB = parseFloat(cs.paddingBottom) || 0;
+    this.padL = parseFloat(cs.paddingLeft) || 0;
   }
 
   // ---------- kamera ----------
@@ -40,9 +54,8 @@ class Renderer {
 
   // ---------- hlavní kreslení ----------
   draw(S) {
-    // S: {world, glider, tDay, dayH, msgs, towPlane, best, distance, muted, tips}
-    const ctx = this.ctx, g = S.glider, world = S.world;
-    this.updateCamera(g, world, S.dt);
+    // S: {world, glider, tDay, dayH, msgs, towPlane, best, distance, muted, touchUI}
+    this.updateCamera(S.glider, S.world, S.dt);
 
     this.drawSky(S);
     this.drawBackHills(S);
@@ -521,63 +534,67 @@ class Renderer {
     const ctx = this.ctx;
     r = r || 9;
     ctx.beginPath();
-    ctx.roundRect(x, y, w, h, r);
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, r);   // chybí do iOS Safari 16
+    else ctx.rect(x, y, w, h);
     ctx.fillStyle = "rgba(8,28,48,0.55)";
     ctx.fill();
   }
 
   drawHUD(S) {
     const ctx = this.ctx, g = S.glider;
-    const midX = this.W / 2;
+    const L = this.padL, R = this.W - this.padR;       // bezpečné okraje
+    const T = this.padT, B = this.H - this.padB;
+    const midX = (L + R) / 2;
+    const warnY = T + (B - T) * 0.30;
     ctx.textBaseline = "middle";
 
     // --- čas + síla dne (vlevo nahoře) ---
-    this.chip(12, 12, 128, 40);
+    this.chip(L + 12, T + 12, 128, 40);
     ctx.fillStyle = "#fff";
     ctx.font = "700 19px system-ui";
     ctx.textAlign = "left";
-    ctx.fillText(U.fmtTime(S.dayH), 24, 32);
+    ctx.fillText(U.fmtTime(S.dayH), L + 24, T + 32);
     const dayF = S.world.dayFactor(S.dayH);
     for (let i = 0; i < 4; i++) {
       ctx.fillStyle = dayF > (i + 0.5) / 4 ? "#ffd24a" : "rgba(255,255,255,0.22)";
       ctx.beginPath();
-      ctx.arc(96 + i * 11, 32, 4, 0, Math.PI * 2);
+      ctx.arc(L + 96 + i * 11, T + 32, 4, 0, Math.PI * 2);
       ctx.fill();
     }
 
     // --- vzdálenost (střed nahoře) ---
-    this.chip(midX - 86, 12, 172, 46);
+    this.chip(midX - 86, T + 12, 172, 46);
     ctx.fillStyle = "#ffd24a";
     ctx.font = "800 26px system-ui";
     ctx.textAlign = "center";
-    ctx.fillText(S.distance.toFixed(1) + " km", midX, 33);
+    ctx.fillText(S.distance.toFixed(1) + " km", midX, T + 33);
     if (S.best > 0) {
       ctx.fillStyle = "rgba(255,255,255,0.75)";
       ctx.font = "600 11px system-ui";
-      ctx.fillText("rekord " + S.best.toFixed(1) + " km", midX, 50);
+      ctx.fillText("rekord " + S.best.toFixed(1) + " km", midX, T + 50);
     }
 
     // --- výška (vpravo nahoře) ---
     const agl = Math.round(g.agl());
-    this.chip(this.W - 152, 12, 140, 52);
+    this.chip(R - 152, T + 12, 140, 52);
     ctx.textAlign = "right";
     ctx.fillStyle = agl < CFG.lowAltWarn && g.mode !== "tow" ? "#ff9060" : "#fff";
     ctx.font = "800 24px system-ui";
-    ctx.fillText(agl + " m", this.W - 26, 32);
+    ctx.fillText(agl + " m", R - 26, T + 32);
     ctx.fillStyle = "rgba(255,255,255,0.7)";
     ctx.font = "600 11px system-ui";
-    ctx.fillText(Math.round(g.h) + " m MSL", this.W - 26, 52);
+    ctx.fillText(Math.round(g.h) + " m MSL", R - 26, T + 52);
 
     // --- rychlost (dole uprostřed) ---
     const spd = Math.round(U.kmh(g.v));
-    this.chip(midX - 74, this.H - 78, 148, 62);
+    this.chip(midX - 74, B - 78, 148, 62);
     ctx.textAlign = "center";
     ctx.fillStyle = g.v > CFG.vNe - 3 ? "#ff5544" : (g.buffet ? "#ffb020" : "#fff");
     ctx.font = "800 34px system-ui";
-    ctx.fillText(String(spd), midX, this.H - 50);
+    ctx.fillText(String(spd), midX, B - 50);
     ctx.fillStyle = "rgba(255,255,255,0.7)";
     ctx.font = "600 11px system-ui";
-    ctx.fillText("km/h", midX, this.H - 26);
+    ctx.fillText("km/h", midX, B - 26);
 
     // MacCready doporučení
     if (g.mode === "free" && g.agl() > 280) {
@@ -587,10 +604,10 @@ class Renderer {
         ctx.font = "800 13px system-ui";
         if (diff > 0) {
           ctx.fillStyle = "#7fd0ff";
-          ctx.fillText("ZRYCHLI ▲ " + Math.round(U.kmh(stf)), midX, this.H - 92);
+          ctx.fillText("ZRYCHLI ▲ " + Math.round(U.kmh(stf)), midX, B - 92);
         } else {
           ctx.fillStyle = "#a5f0a5";
-          ctx.fillText("ZPOMAL ▼ " + Math.round(U.kmh(stf)), midX, this.H - 92);
+          ctx.fillText("ZPOMAL ▼ " + Math.round(U.kmh(stf)), midX, B - 92);
         }
       }
     }
@@ -603,24 +620,24 @@ class Renderer {
     if (g.buffet) {
       ctx.fillStyle = "rgba(255,60,40," + (0.6 + 0.4 * Math.sin(performance.now() / 90)) + ")";
       ctx.font = "800 22px system-ui";
-      ctx.fillText("PŘETAŽENÍ!", midX, this.H * 0.30);
+      ctx.fillText("PŘETAŽENÍ!", midX, warnY);
     } else if (g.v > CFG.vNe - 2 && g.mode === "free") {
       ctx.fillStyle = "rgba(255,60,40," + (0.6 + 0.4 * Math.sin(performance.now() / 90)) + ")";
       ctx.font = "800 22px system-ui";
-      ctx.fillText("VNE!", midX, this.H * 0.30);
+      ctx.fillText("VNE!", midX, warnY);
     } else if (g.mode !== "tow" && g.mode !== "done" && agl < CFG.lowAltWarn) {
       const seg = S.world.segAt(g.x);
       const landable = S.world.isLandable(seg.type);
       ctx.fillStyle = landable ? "rgba(255,210,80,0.85)" : "rgba(255,90,50,0.9)";
       ctx.font = "800 16px system-ui";
-      ctx.fillText(landable ? "NÍZKO — pod tebou se dá přistát" : "NÍZKO — najdi pole!", midX, this.H * 0.30);
+      ctx.fillText(landable ? "NÍZKO — pod tebou se dá přistát" : "NÍZKO — najdi pole!", midX, warnY);
     }
 
     // --- nápověda při vleku ---
     if (g.mode === "tow" && g.towT > CFG.towRollTime + 2) {
       ctx.fillStyle = "rgba(255,255,255,0.9)";
       ctx.font = "700 15px system-ui";
-      ctx.fillText("MEZERNÍK / ⟳ — vypnout (ideálně ve stoupáku!)", midX, this.H * 0.22);
+      ctx.fillText("MEZERNÍK / ⟳ — vypnout (ideálně ve stoupáku!)", midX, T + (B - T) * 0.22);
     }
 
     // ztlumeno
@@ -628,13 +645,19 @@ class Renderer {
       ctx.textAlign = "left";
       ctx.fillStyle = "rgba(255,255,255,0.6)";
       ctx.font = "700 13px system-ui";
-      ctx.fillText("🔇", 20, this.H - 20);
+      ctx.fillText("🔇", L + 20, B - 20);
     }
   }
 
   drawVario(S) {
     const ctx = this.ctx, g = S.glider;
-    const gx = this.W - 46, gy = this.H / 2, gh = Math.min(this.H * 0.36, 260);
+    // svislý pruh mezi horními chipy a dotykovým tlačítkem ⟳ — na telefonu
+    // na šířku by se jinak spodek stupnice (⌀ a MC) schoval pod tlačítko
+    const bandTop = this.padT + 66;
+    const bandBot = this.H - this.padB - (S.touchUI ? 104 : 12);
+    const gh = Math.max(70, Math.min(this.H * 0.36, 260, bandBot - bandTop - 88));
+    const gx = this.W - this.padR - 46;
+    const gy = (bandTop + bandBot) / 2 - 10;   // chip sahá 10 px pod střed
     this.chip(gx - 26, gy - gh / 2 - 34, 66, gh + 88, 12);
 
     // stupnice ±5
@@ -679,7 +702,8 @@ class Renderer {
   drawMessages(S) {
     const ctx = this.ctx;
     const now = performance.now() / 1000;
-    let y = this.H * 0.38;
+    const midX = (this.padL + this.W - this.padR) / 2;
+    let y = this.padT + (this.H - this.padT - this.padB) * 0.38;
     ctx.textAlign = "center";
     for (const m of S.msgs) {
       const left = m.until - now;
@@ -688,9 +712,9 @@ class Renderer {
       ctx.globalAlpha = alpha;
       ctx.font = (m.big ? "800 24px" : "700 17px") + " system-ui";
       const w = ctx.measureText(m.text).width + 36;
-      this.chip(this.W / 2 - w / 2, y - 16, w, 34, 17);
+      this.chip(midX - w / 2, y - 16, w, 34, 17);
       ctx.fillStyle = m.color || "#fff";
-      ctx.fillText(m.text, this.W / 2, y + 1);
+      ctx.fillText(m.text, midX, y + 1);
       ctx.globalAlpha = 1;
       y += 42;
     }

@@ -17,6 +17,14 @@ html, body {
   display: block;
 }
 
+/* neviditelná sonda — HUD na canvasu si z ní přečte safe-area insety */
+#safearea {
+  position: fixed; left: 0; top: 0; width: 0; height: 0;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+  visibility: hidden; pointer-events: none;
+}
+
 /* ---- dotyková tlačítka ---- */
 #touchui {
   position: fixed; right: max(14px, env(safe-area-inset-right)); bottom: max(14px, env(safe-area-inset-bottom));

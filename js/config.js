@@ -12,7 +12,6 @@ const CFG = {
   vStall: 17.5,    // pádová (~63 km/h)
   vBuffet: 18.6,   // varování před pádem
   vNe: 63.9,       // nepřekročitelná (~230 km/h)
-  vTrim: 26.5,     // výchozí rychlost po vypnutí
 
   pitchAccel: 3.2,      // max podélné zrychlení od výškovky [m/s²]
   stallDrop: 22,        // ztráta výšky při přetažení [m]
@@ -25,10 +24,12 @@ const CFG = {
   circleRadiusVis: 32,  // vizuální poloměr [m]
 
   // --- aerovlek ---
+  // Krátký záměrně: předčasně vypnout se stejně skoro nikdy nevyplatí, takže
+  // vlek je jen svižný začátek letu (~35 s), ne herní rozhodnutí samo o sobě.
   towSpeed: 33,         // ~119 km/h
-  towClimb: 5.5,        // arkádově svižný vlek
-  towAutoRelease: 600,  // AGL auto-vypnutí
-  towRollTime: 5,       // rozjezd [s]
+  towClimb: 12,         // arkádově svižný vlek
+  towAutoRelease: 400,  // AGL auto-vypnutí
+  towRollTime: 2.2,     // rozjezd [s]
 
   // --- den / termika ---
   // Herní kompromis: fyzika kluzáku je reálná, ale pracovní pásmo termiky je

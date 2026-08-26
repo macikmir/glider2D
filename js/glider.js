@@ -16,14 +16,15 @@ class Glider {
     this.stallT = 0;            // probíhající přetažení
     this.circleX = 0;
     this.circlePhase = 0;
-    this.nudge = 0;
     this.airmass = 0;
     this.result = null;         // {kind, text, ok}
     this.mc = 1.0;              // MacCready — auto podle posledního stoupáku
     this.lastClimbAvg = 0;
     this.climbSamples = [];
+    this._csT = 0;              // průběžné součty okna průměrovače
+    this._csSum = 0;
     // statistiky
-    this.stats = { maxAlt: 0, bestClimb: 0, thermals: 0, releaseAlt: 0, hardBuffets: 0 };
+    this.stats = { maxAlt: 0, bestClimb: 0, thermals: 0, releaseAlt: 0 };
     this._wasCirclingClimb = false;
     this.trail = [];
     this._trailT = 0;
@@ -48,11 +49,11 @@ class Glider {
     const W = this.world;
     if (this.mode === "done") return;
 
-    this.airmass = W.airmass(this.x, this.h, tDay, dayH);
     let climb = 0;
 
     if (this.mode === "tow") {
       // --- aerovlek (skriptovaný) ---
+      this.airmass = W.airmass(this.x, this.h, tDay, dayH);
       this.towT += dt;
       if (this.towT < CFG.towRollTime) {
         // rozjezd po zemi
@@ -69,8 +70,9 @@ class Glider {
         // vlečná neletí do kopce — drž bezpečnou výšku nad terénem
         this.h = Math.max(this.h, W.elevAt(this.x) + 12);
         const agl = this.agl();
-        // TE vário ukazuje vzduch — v tom je ta hra: vypnout ve stoupáku
-        this._setVario(this.airmass + CFG.towClimb, dt);
+        // Ve vleku ukazuje vário netto, tedy samotný vzduch: stoupání vlečné
+        // by stupnici trvale drželo na maximu a stoupák by v ní nebyl vidět.
+        this._setVario(this.airmass, dt);
         if (input.action || agl >= CFG.towAutoRelease) {
           this.release(events, agl >= CFG.towAutoRelease);
         }
@@ -98,6 +100,7 @@ class Glider {
       if (this.agl() <= 1) { this._touchdown(events, true); return; }
     } else {
       // --- klouzavý let ---
+      this.airmass = W.airmass(this.x, this.h, tDay, dayH);
       this.pitch = input.pitch;
       let acc = input.pitch * CFG.pitchAccel;
 
@@ -127,10 +130,7 @@ class Glider {
         events.push({ type: "stall" });
       }
       // překročení VNE
-      if (this.v > CFG.vNe) {
-        events.push({ type: "overspeed" });
-        if (this.v > CFG.vNe * 1.05) { this._crash(events, "vne"); return; }
-      }
+      if (this.v > CFG.vNe * 1.05) { this._crash(events, "vne"); return; }
 
       this._setVario(this.airmass - this.polarSink(this.v), dt);
       this._sampleClimb(climb, dt);
@@ -159,6 +159,8 @@ class Glider {
     this.circleX = this.x;
     this.circlePhase = 0;
     this.climbSamples = [];
+    this._csT = 0;
+    this._csSum = 0;
     this._circleStartH = this.h;
     events.push({ type: "circleStart" });
   }
@@ -180,15 +182,18 @@ class Glider {
     this.vario += (val - this.vario) * Math.min(dt * 4.5, 1);
   }
 
+  // klouzavé 20s okno; součty se udržují průběžně, ne přepočtem celého pole
   _sampleClimb(climb, dt) {
     this.climbSamples.push({ c: climb, dt });
-    let tot = 0;
-    for (const s of this.climbSamples) tot += s.dt;
-    while (tot > 20 && this.climbSamples.length > 1) tot -= this.climbSamples.shift().dt;
-    let sum = 0;
-    for (const s of this.climbSamples) sum += s.c * s.dt;
-    this.avgClimb = tot > 0.5 ? sum / tot : 0;
-    this.stats.bestClimb = Math.max(this.stats.bestClimb, tot > 8 ? this.avgClimb : 0);
+    this._csT += dt;
+    this._csSum += climb * dt;
+    while (this._csT > 20 && this.climbSamples.length > 1) {
+      const old = this.climbSamples.shift();
+      this._csT -= old.dt;
+      this._csSum -= old.c * old.dt;
+    }
+    this.avgClimb = this._csT > 0.5 ? this._csSum / this._csT : 0;
+    this.stats.bestClimb = Math.max(this.stats.bestClimb, this._csT > 8 ? this.avgClimb : 0);
   }
 
   _trailPush(dt) {

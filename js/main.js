@@ -19,8 +19,18 @@
   let tips = {};
   let flightTime = 0;
   let paused = false;
+  let endTimer = 0;             // odložené zobrazení výsledku po dosednutí
 
-  let best = parseFloat(localStorage.getItem("termika_best") || "0") || 0;
+  // localStorage může být v restriktivním režimu prohlížeče nedostupné
+  function loadBest() {
+    try { return parseFloat(localStorage.getItem("termika_best") || "0") || 0; }
+    catch (e) { return 0; }
+  }
+  function saveBest(v) {
+    try { localStorage.setItem("termika_best", String(v)); } catch (e) { /* nevadí */ }
+  }
+
+  let best = loadBest();
 
   // ---------- vstupy ----------
   const input = { pitch: 0, nudge: 0, action: false };
@@ -33,13 +43,16 @@
     audio.ensure();
     if (e.code === "Space") {
       e.preventDefault();
-      if (state === "flying") input.action = true;
+      if (state === "flying") { if (!paused) input.action = true; }
       else if (state === "menu" && elHelp.classList.contains("hidden")) startFlight();
       else if (state === "result") restart();
     }
     if (e.code === "KeyR" && state !== "menu") restart();
     if (e.code === "KeyM") audio.toggleMute();
-    if (e.code === "KeyP" || e.code === "Escape") { if (state === "flying") paused = !paused; }
+    // vstup se při přepnutí pauzy zahodí, ať kluzák po odpauzování neskočí do kruhu
+    if (e.code === "KeyP" || e.code === "Escape") {
+      if (state === "flying") { paused = !paused; input.action = false; }
+    }
     if (e.code === "KeyH") { if (state === "menu") showHelp(true); }
   });
   window.addEventListener("keyup", (e) => { keys[e.code] = false; });
@@ -62,13 +75,17 @@
 
   btnAction.addEventListener("click", () => {
     audio.ensure();
-    if (state === "flying") input.action = true;
+    if (state === "flying" && !paused) input.action = true;
   });
 
   document.getElementById("btnStart").addEventListener("click", () => { audio.ensure(); startFlight(); });
   document.getElementById("btnHelp").addEventListener("click", () => showHelp(true));
   document.getElementById("btnHelpClose").addEventListener("click", () => showHelp(false));
   document.getElementById("btnAgain").addEventListener("click", restart);
+  document.getElementById("btnMenu").addEventListener("click", () => {
+    elResult.classList.add("hidden");
+    showMenu();
+  });
 
   window.addEventListener("resize", () => renderer.resize());
   document.addEventListener("visibilitychange", () => { if (document.hidden && state === "flying") paused = true; });
@@ -84,11 +101,12 @@
     if (keys["ArrowLeft"] || keys["KeyA"]) nudge -= 1;
     if (keys["ArrowRight"] || keys["KeyD"]) nudge += 1;
 
-    // dotyk: tažení nahoru = stoupat (přitáhnout/zpomalit), dolů = zrychlit
+    // dotyk kopíruje knipl (a tedy i klávesy): tažení dolů = přitáhnout
+    // (zpomalit), tažení nahoru = potlačit (zrychlit)
     if (touch) {
       const dy = touch.y - touch.y0;   // dolů kladné
       const dx = touch.x - touch.x0;
-      target = U.clamp(dy / 110, -1, 1);
+      target = U.clamp(-dy / 110, -1, 1);
       nudge = U.clamp(dx / 90, -1, 1);
     }
 
@@ -109,6 +127,10 @@
 
   // ---------- start / restart ----------
   function startFlight() {
+    // po dosednutí čeká výsledek na timeoutu — restart ho musí zrušit,
+    // jinak by se překlopil do už rozletěného nového letu
+    clearTimeout(endTimer);
+    endTimer = 0;
     world = new World((Math.random() * 1e9) | 0);
     glider = new Glider(world);
     towPlane = { x: glider.x + 62, h: glider.h, roped: true, gone: 0, pitchVis: 0 };
@@ -161,6 +183,8 @@
   };
 
   function finishFlight() {
+    endTimer = 0;
+    if (!glider || !glider.result) return;
     state = "result";
     const res = glider.result;
     const dist = glider.x / 1000;
@@ -168,7 +192,7 @@
 
     // vzdálenost se ukáže vždy, ale rekord platí jen při přistání v pořádku
     let newRec = false;
-    if (res.ok && dist > best) { best = dist; newRec = true; localStorage.setItem("termika_best", String(best)); }
+    if (res.ok && dist > best) { best = dist; newRec = true; saveBest(best); }
 
     document.getElementById("resTitle").textContent = (res.ok ? "🏆 " : "💥 ") + V.t;
     document.getElementById("resVerdict").textContent = V.v;
@@ -211,14 +235,12 @@
           say("PŘETAŽENÍ!", { color: "#ff6a50", big: true, dur: 2 });
           audio.thud(false);
           break;
-        case "overspeed":
-          break;
         case "tooFastCircle":
           say("Na kroužení moc rychle — zpomal pod 160 km/h", { color: "#ffd24a", dur: 2.5 });
           break;
         case "landed":
           audio.thud(!ev.ok);
-          setTimeout(finishFlight, ev.ok ? 900 : 1200);
+          endTimer = setTimeout(finishFlight, ev.ok ? 900 : 1200);
           break;
       }
     }
@@ -250,7 +272,7 @@
       towPlane.h = glider.towT < CFG.towRollTime
         ? world.elevAt(towPlane.x) + 1.2
         : glider.h + 6;
-      towPlane.pitchVis = glider.towT < CFG.towRollTime ? 0 : 0.12;
+      towPlane.pitchVis = glider.towT < CFG.towRollTime ? 0 : 0.3;   // odpovídá towClimb
     } else if (towPlane.gone < 8) {
       towPlane.gone += dt;
       towPlane.x += (CFG.towSpeed + 8) * dt;
@@ -292,6 +314,7 @@
         distance: glider.x / 1000,
         best,
         muted: audio.muted,
+        touchUI: isTouchDevice,   // HUD nechá dole vpravo místo tlačítku ⟳
       });
       if (paused && state === "flying") {
         const ctx = renderer.ctx;
