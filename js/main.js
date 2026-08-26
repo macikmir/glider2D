@@ -20,6 +20,7 @@
   let flightTime = 0;
   let paused = false;
   let endTimer = 0;             // odložené zobrazení výsledku po dosednutí
+  let pendingReload = false;    // čeká nová verze z service workeru
 
   // localStorage může být v restriktivním režimu prohlížeče nedostupné
   function loadBest() {
@@ -60,6 +61,9 @@
   canvas.addEventListener("pointerdown", (e) => {
     audio.ensure();
     if (state !== "flying") return;
+    // Pauza se na mobilu zapne sama při odchodu z aplikace a klávesa P tam
+    // není — bez tohohle by se z rozlétaného letu nedalo dostat ven.
+    if (paused) { paused = false; input.action = false; return; }
     if (touch) return;
     touch = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY };
     canvas.setPointerCapture(e.pointerId);
@@ -127,6 +131,8 @@
 
   // ---------- start / restart ----------
   function startFlight() {
+    // nová verze dorazila během letu — nový let už začne na aktuálním kódu
+    if (pendingReload) { location.reload(); return; }
     // po dosednutí čeká výsledek na timeoutu — restart ho musí zrušit,
     // jinak by se překlopil do už rozletěného nového letu
     clearTimeout(endTimer);
@@ -325,7 +331,8 @@
         ctx.font = "800 30px system-ui";
         ctx.fillText("PAUZA", renderer.W / 2, renderer.H / 2);
         ctx.font = "600 15px system-ui";
-        ctx.fillText("P = pokračovat", renderer.W / 2, renderer.H / 2 + 34);
+        ctx.fillText(isTouchDevice ? "klepni pro pokračování" : "P = pokračovat",
+                     renderer.W / 2, renderer.H / 2 + 34);
       }
       audio.update(dt, {
         vario: glider.vario,
@@ -351,6 +358,16 @@
 
   // PWA: offline cache (jen přes http/https, z disku service worker nejde)
   if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    // sw.js se aktivuje sám (skipWaiting + clients.claim), jenže tahle stránka
+    // už má v paměti starý kód — takže se po převzetí jednou přenačte. Bez
+    // toho ukáže iPhone novou verzi až na druhé spuštění.
+    // Při úplně první registraci se controller mění taky; tam reload nechceme.
+    const hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!hadController || pendingReload) return;
+      pendingReload = true;
+      if (state !== "flying") location.reload();   // rozlétaný let nepřerušujeme
+    });
     navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 

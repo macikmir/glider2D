@@ -20,8 +20,14 @@ Hra je **PWA** — po vystavení na HTTPS ji lze nainstalovat na plochu:
 3. Sdílet (čtvereček se šipkou) → **Přidat na plochu**.
 
 Poběží celoobrazovkově na šířku, offline (service worker `sw.js`),
-s vlastní ikonou a bez adresního řádku. Při změně souborů zvyš verzi
-cache v `sw.js` (`termika-v1` → `v2`), jinak iPhone podrží starou verzi.
+s vlastní ikonou a bez adresního řádku. **Při změně souborů zvyš verzi
+cache v `sw.js`** (`termika-v3` → `v4`) — jinak prohlížeč vůbec nepozná,
+že je co stahovat, a iPhone podrží starou verzi.
+
+Novou verzi si hra načte sama: jakmile nový service worker převezme
+vládu, stránka se jednou přenačte. Na iPhonu ale kontrola nové verze
+proběhne jen při skutečném spuštění, ne když se jen rozmrazí ikona z
+přepínače aplikací — takže PWA nejdřív v přepínači zavři.
 
 Pro „opravdovou“ aplikaci v App Storu by bylo potřeba zabalit hru do
 WKWebView přes [Capacitor](https://capacitorjs.com) (`npm i @capacitor/core
@@ -36,9 +42,10 @@ pro sebe a kamarády je PWA plnohodnotná a zdarma.
 | přitáhnout (zpomalit) | ↓ / S | tažení dolů |
 | vypnout vlek / kroužit | mezerník | tlačítko ⟳ |
 | centrování v kruhu | ← → / A D | tažení do stran |
-| zvuk / pauza / restart | M / P nebo Esc / R | — |
+| zvuk / pauza / restart | M / P nebo Esc / R | klepnutí ruší pauzu |
 
 Dotyk kopíruje knipl: táhneš prsty k sobě (dolů) = přitažení.
+Odchod z aplikace let sám zapauzuje; zpátky do něj se vrátíš klepnutím.
 
 ## Herní principy (pro plachtaře)
 
